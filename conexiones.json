@@ -1,0 +1,1 @@
+[{"nombre":"Conexion1","host":"localhost","puerto":"3306","baseDatos":"dbmanager","usuario":"root","contrasena":"eleanareyes"},{"nombre":"Conexion2","host":"localhost","puerto":"3306","baseDatos":"proyecto","usuario":"root","contrasena":"eleanareyes"},{"nombre":"Conexion3","host":"localhost","puerto":"3306","baseDatos":"technah","usuario":"root","contrasena":"eleanareyes"}]
