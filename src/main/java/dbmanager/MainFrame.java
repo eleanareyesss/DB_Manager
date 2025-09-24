@@ -39,7 +39,7 @@ public class MainFrame extends JFrame {
         btnNuevaConexion.addActionListener(e -> crearNuevaConexion());
         panelTop.add(btnNuevaConexion);
         add(panelTop, BorderLayout.NORTH);
-        
+
         JButton btnDiagrama = new JButton("📊 Ver Diagrama ER");
         btnDiagrama.addActionListener(ev -> {
             if (Global.conexion == null) {
@@ -53,7 +53,6 @@ public class MainFrame extends JFrame {
             }
         });
         panelTop.add(btnDiagrama);
-
 
         Global.cargarConexiones();
         for (ConexionInfo info : Global.conexiones) {
@@ -107,7 +106,6 @@ public class MainFrame extends JFrame {
 
                     JPopupMenu menu = new JPopupMenu();
 
-                    // 📌 Crear tabla o vista (ya lo tenías)
                     if ("Tablas".equals(nombreNodo)) {
                         JMenuItem crearTabla = new JMenuItem("➕ Crear Tabla");
                         crearTabla.addActionListener(ev -> {
@@ -126,7 +124,6 @@ public class MainFrame extends JFrame {
                         menu.add(crearVista);
                     }
 
-                    // 📌 Ver DDL de objetos individuales
                     if (padre != null) {
                         String categoria = padre.toString();
                         if ("Tablas".equals(categoria)) {
@@ -152,6 +149,24 @@ public class MainFrame extends JFrame {
                         }
                     }
 
+                    if (padre != null) {
+                        String categoria = padre.toString();
+
+                        if ("Tablas".equals(categoria)) {
+                            JMenuItem diagramaTabla = new JMenuItem("📊 Ver Diagrama Relacional");
+                            diagramaTabla.addActionListener(ev
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "TABLE")
+                            );
+                            menu.add(diagramaTabla);
+                        } else if ("Vistas".equals(categoria)) {
+                            JMenuItem diagramaVista = new JMenuItem("📊 Ver Diagrama Relacional");
+                            diagramaVista.addActionListener(ev
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "VIEW")
+                            );
+                            menu.add(diagramaVista);
+                        }
+                    }
+
                     if (menu.getComponentCount() > 0) {
                         menu.show(treeObjetos, e.getX(), e.getY());
                     }
@@ -172,7 +187,7 @@ public class MainFrame extends JFrame {
         btnGuardar.setToolTipText("Guardar script");
         btnAbrir = new JButton("📂");
         btnAbrir.setToolTipText("Importar script");
-        
+
         toolBar.add(btnEjecutar);
         toolBar.add(btnGuardar);
         toolBar.add(btnAbrir);
@@ -245,7 +260,6 @@ public class MainFrame extends JFrame {
             } else {
                 int count = stmt.getUpdateCount();
                 txtOutput.setText("✅ Sentencia ejecutada. Filas afectadas: " + count);
-                // refrescar objetos si cambió el esquema
                 if (sql.toLowerCase().matches("^(create|drop|alter|rename|truncate).*")) {
                     cargarObjetos();
                 }
@@ -351,7 +365,7 @@ public class MainFrame extends JFrame {
         try (Statement stmt = Global.conexion.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
             if (rs.next()) {
-                String ddl = rs.getString(2); // la segunda columna contiene el código
+                String ddl = rs.getString(2);
                 txtSQL.setText(ddl);
                 txtOutput.setText("✅ DDL obtenido para " + tipo.toLowerCase() + " " + nombre);
             }
@@ -389,7 +403,7 @@ public class MainFrame extends JFrame {
 
             Global.conectar(nueva);
             cargarObjetos();
-            Global.guardarConexiones(); // <- persistir
+            Global.guardarConexiones();
         }
     }
 
