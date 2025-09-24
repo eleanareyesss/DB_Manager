@@ -8,8 +8,9 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.sql.*;
+import java.util.*;
+import java.util.List;
 import java.util.Scanner;
-import dbmanager.DiagramaER;
 
 /**
  *
@@ -23,6 +24,8 @@ public class MainFrame extends JFrame {
     private JButton btnEjecutar, btnGuardar, btnAbrir;
     private JTable tablaResultados;
     private JTextArea txtOutput;
+    private JCheckBox chkReplicarPg;
+    private Map<String, List<String>> pkCache = new HashMap<>();
 
     public MainFrame() {
         super("Mini-DBManager");
@@ -75,6 +78,7 @@ public class MainFrame extends JFrame {
             if (idx >= 0 && idx < Global.conexiones.size()) {
                 ConexionInfo info = Global.conexiones.get(idx);
                 Global.conectar(info);
+                pkCache.clear();
                 cargarObjetos();
             }
         });
@@ -130,10 +134,22 @@ public class MainFrame extends JFrame {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de tabla");
                             verDDL.addActionListener(ev -> mostrarDDL("TABLE", nombreNodo));
                             menu.add(verDDL);
+
+                            JMenuItem diagramaTabla = new JMenuItem("📊 Ver Diagrama Relacional");
+                            diagramaTabla.addActionListener(ev
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "TABLE")
+                            );
+                            menu.add(diagramaTabla);
                         } else if ("Vistas".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de vista");
                             verDDL.addActionListener(ev -> mostrarDDL("VIEW", nombreNodo));
                             menu.add(verDDL);
+
+                            JMenuItem diagramaVista = new JMenuItem("📊 Ver Diagrama Relacional");
+                            diagramaVista.addActionListener(ev
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "VIEW")
+                            );
+                            menu.add(diagramaVista);
                         } else if ("Procedimientos".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de procedimiento");
                             verDDL.addActionListener(ev -> mostrarDDL("PROCEDURE", nombreNodo));
@@ -146,24 +162,6 @@ public class MainFrame extends JFrame {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de trigger");
                             verDDL.addActionListener(ev -> mostrarDDL("TRIGGER", nombreNodo));
                             menu.add(verDDL);
-                        }
-                    }
-
-                    if (padre != null) {
-                        String categoria = padre.toString();
-
-                        if ("Tablas".equals(categoria)) {
-                            JMenuItem diagramaTabla = new JMenuItem("📊 Ver Diagrama Relacional");
-                            diagramaTabla.addActionListener(ev
-                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "TABLE")
-                            );
-                            menu.add(diagramaTabla);
-                        } else if ("Vistas".equals(categoria)) {
-                            JMenuItem diagramaVista = new JMenuItem("📊 Ver Diagrama Relacional");
-                            diagramaVista.addActionListener(ev
-                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "VIEW")
-                            );
-                            menu.add(diagramaVista);
                         }
                     }
 
@@ -188,21 +186,25 @@ public class MainFrame extends JFrame {
         btnAbrir = new JButton("📂");
         btnAbrir.setToolTipText("Importar script");
 
+        JButton btnConectarPg = new JButton("Conexión con Postgres");
+        btnConectarPg.setToolTipText("Conectar a PostgreSQL");
+        btnConectarPg.addActionListener(e -> conectarAPostgres());
+
+        chkReplicarPg = new JCheckBox("Replicar a PG");
+
         toolBar.add(btnEjecutar);
         toolBar.add(btnGuardar);
         toolBar.add(btnAbrir);
-
+        toolBar.addSeparator();
+        toolBar.add(btnConectarPg);
+        toolBar.add(chkReplicarPg);
         JPanel panelSQL = new JPanel(new BorderLayout());
         panelSQL.add(toolBar, BorderLayout.NORTH);
         panelSQL.add(scrollSQL, BorderLayout.CENTER);
-
         panelCentro.add(panelSQL, BorderLayout.NORTH);
-
         tablaResultados = new JTable();
         panelCentro.add(new JScrollPane(tablaResultados), BorderLayout.CENTER);
-
         add(panelCentro, BorderLayout.CENTER);
-
         txtOutput = new JTextArea(3, 80);
         txtOutput.setEditable(false);
         add(new JScrollPane(txtOutput), BorderLayout.SOUTH);
@@ -211,8 +213,10 @@ public class MainFrame extends JFrame {
         btnGuardar.addActionListener(e -> guardarSQL());
         btnAbrir.addActionListener(e -> importarSQL());
 
-        txtSQL.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()),
-                "run-sql");
+        txtSQL.getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()),
+                "run-sql"
+        );
         txtSQL.getActionMap().put("run-sql", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -263,10 +267,57 @@ public class MainFrame extends JFrame {
                 if (sql.toLowerCase().matches("^(create|drop|alter|rename|truncate).*")) {
                     cargarObjetos();
                 }
+                replicarAPostgres(sql);
             }
         } catch (Exception ex) {
             txtOutput.setText("❌ Error: " + ex.getMessage());
         }
+    }
+
+    private void replicarAPostgres(String sql) {
+        if (GlobalPg.conexionPg == null || !chkReplicarPg.isSelected()) {
+            return;
+        }
+
+        try (Statement pg = GlobalPg.conexionPg.createStatement()) {
+            String sqlPg = sql;
+
+            if (SqlTranslator.isDDL(sql)) {
+                String s = sql.trim().toLowerCase(java.util.Locale.ROOT);
+                if (s.startsWith("create table")) {
+                    sqlPg = SqlTranslator.translateCreateTableToPg(sql);
+                } else if (s.startsWith("create view") || s.startsWith("create or replace view")) {
+                    sqlPg = SqlTranslator.translateCreateViewToPg(sql);
+                } else if (s.startsWith("drop view")) {
+                    sqlPg = SqlTranslator.quoteFix(sql);
+                } else if (s.startsWith("alter table") || s.startsWith("drop ")
+                        || s.startsWith("truncate ") || s.startsWith("rename ")
+                        || s.startsWith("create index") || s.startsWith("create unique index")) {
+                    sqlPg = SqlTranslator.quoteFix(sql);
+                }
+                pg.execute(sqlPg);
+                txtOutput.append("\n↗️ PG: DDL replicado.");
+            }
+
+        } catch (Exception ex) {
+            txtOutput.append("\n⚠️ Replicación PG falló: " + ex.getMessage());
+        }
+    }
+
+    private List<String> getPkCols(String table) {
+        List<String> cached = pkCache.get(table);
+        if (cached != null) {
+            return cached;
+        }
+        List<String> pks = new ArrayList<>();
+        try (Statement st = Global.conexion.createStatement(); ResultSet rs = st.executeQuery("SHOW KEYS FROM `" + table + "` WHERE Key_name='PRIMARY'")) {
+            while (rs.next()) {
+                pks.add(rs.getString("Column_name"));
+            }
+        } catch (Exception ignored) {
+        }
+        pkCache.put(table, pks);
+        return pks;
     }
 
     private void cargarObjetos() {
@@ -402,8 +453,38 @@ public class MainFrame extends JFrame {
             comboConexiones.setSelectedIndex(comboConexiones.getItemCount() - 1);
 
             Global.conectar(nueva);
+            pkCache.clear();
             cargarObjetos();
             Global.guardarConexiones();
+        }
+    }
+
+    private void conectarAPostgres() {
+        JTextField txtHost = new JTextField("localhost");
+        JTextField txtPuerto = new JTextField("5432");
+        JTextField txtBase = new JTextField();
+        JTextField txtUsuario = new JTextField();
+        JPasswordField txtPass = new JPasswordField();
+
+        Object[] inputs = {
+            "Host:", txtHost,
+            "Puerto:", txtPuerto,
+            "Base:", txtBase,
+            "Usuario:", txtUsuario,
+            "Contraseña:", txtPass
+        };
+
+        int result = JOptionPane.showConfirmDialog(this, inputs, "Conectar a PostgreSQL", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            ConexionInfo info = new ConexionInfo("PG",
+                    txtHost.getText(), txtPuerto.getText(), txtBase.getText(),
+                    txtUsuario.getText(), new String(txtPass.getPassword()));
+            GlobalPg.conectar(info);
+            if (GlobalPg.conexionPg != null) {
+                txtOutput.setText("✅ Conectado a PostgreSQL: " + info.host + ":" + info.puerto + "/" + info.baseDatos);
+            } else {
+                txtOutput.setText("❌ No se pudo conectar a PostgreSQL");
+            }
         }
     }
 
