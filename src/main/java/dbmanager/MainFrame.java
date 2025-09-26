@@ -27,23 +27,45 @@ public class MainFrame extends JFrame {
     private JCheckBox chkReplicarPg;
     private Map<String, List<String>> pkCache = new HashMap<>();
 
+    private static final Color BG_APP = hex("#E6E8ED");
+    private static final Color BG_PANEL = hex("#E6E8ED");
+    private static final Color FG_TEXT = hex("#111111");
+    private static final Color BTN_BG = hex("#F8BBD0");
+    private static final Color BTN_BG_HOVER = hex("#F48FB1");
+    private static final Color BTN_BORDER = hex("#E1A5BA");
+    private static final Color FIELD_BG = Color.WHITE;
+    private static final Color SELECTION_BG = hex("#F48FB1");
+    private static final Color TABLE_GRID = hex("#D3D7DE");
+    private static final Color TOOLBAR_BG = hex("#EDEFF3");
+
     public MainFrame() {
-        super("Mini-DBManager");
+        installLookAndFeelAndTheme();
+
+        super.setTitle("Mini-DBManager");
         setLayout(new BorderLayout());
         setSize(1000, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-
+        getContentPane().setBackground(BG_APP);
+        ((JComponent) getContentPane()).setOpaque(true);
+        getContentPane().setBackground(BG_APP);
         JPanel panelTop = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panelTop.add(new JLabel("Conexión:"));
+        stylePanel(panelTop);
+        JLabel lblConn = new JLabel("Conexión:");
+        styleLabel(lblConn);
+
         comboConexiones = new JComboBox<>();
+        styleCombo(comboConexiones);
+
+        panelTop.add(lblConn);
         panelTop.add(comboConexiones);
 
         JButton btnNuevaConexion = new JButton("Nueva conexión");
+        styleButton(btnNuevaConexion);
         btnNuevaConexion.addActionListener(e -> crearNuevaConexion());
         panelTop.add(btnNuevaConexion);
-        add(panelTop, BorderLayout.NORTH);
 
-        JButton btnDiagrama = new JButton("📊 Ver Diagrama ER");
+        JButton btnDiagrama = new JButton("📊 Ver Diagrama Entidad-Relacion");
+        styleButton(btnDiagrama);
         btnDiagrama.addActionListener(ev -> {
             if (Global.conexion == null) {
                 JOptionPane.showMessageDialog(this, "No hay conexión activa.");
@@ -56,6 +78,8 @@ public class MainFrame extends JFrame {
             }
         });
         panelTop.add(btnDiagrama);
+
+        add(panelTop, BorderLayout.NORTH);
 
         Global.cargarConexiones();
         for (ConexionInfo info : Global.conexiones) {
@@ -91,9 +115,15 @@ public class MainFrame extends JFrame {
         });
 
         treeObjetos = new JTree(new DefaultTreeModel(new DefaultMutableTreeNode("Objetos BD")));
+        treeObjetos.setForeground(FG_TEXT);
+        treeObjetos.setBackground(BG_PANEL);
+        treeObjetos.setRowHeight(22);
+        treeObjetos.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         JScrollPane scrollTree = new JScrollPane(treeObjetos);
+        styleScroll(scrollTree);
         scrollTree.setPreferredSize(new Dimension(280, 0));
         add(scrollTree, BorderLayout.WEST);
+
         treeObjetos.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -109,9 +139,11 @@ public class MainFrame extends JFrame {
                     TreeNode padre = nodo.getParent();
 
                     JPopupMenu menu = new JPopupMenu();
+                    stylePopup(menu);
 
                     if ("Tablas".equals(nombreNodo)) {
                         JMenuItem crearTabla = new JMenuItem("➕ Crear Tabla");
+                        styleMenuItem(crearTabla);
                         crearTabla.addActionListener(ev -> {
                             CrearTablaDialog dlg = new CrearTablaDialog(MainFrame.this);
                             dlg.setVisible(true);
@@ -120,6 +152,7 @@ public class MainFrame extends JFrame {
                         menu.add(crearTabla);
                     } else if ("Vistas".equals(nombreNodo)) {
                         JMenuItem crearVista = new JMenuItem("➕ Crear Vista");
+                        styleMenuItem(crearVista);
                         crearVista.addActionListener(ev -> {
                             CrearVistaDialog dlg = new CrearVistaDialog(MainFrame.this);
                             dlg.setVisible(true);
@@ -132,34 +165,39 @@ public class MainFrame extends JFrame {
                         String categoria = padre.toString();
                         if ("Tablas".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de tabla");
+                            styleMenuItem(verDDL);
                             verDDL.addActionListener(ev -> mostrarDDL("TABLE", nombreNodo));
                             menu.add(verDDL);
 
                             JMenuItem diagramaTabla = new JMenuItem("📊 Ver Diagrama Relacional");
+                            styleMenuItem(diagramaTabla);
                             diagramaTabla.addActionListener(ev
-                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "TABLE")
-                            );
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "TABLE"));
                             menu.add(diagramaTabla);
                         } else if ("Vistas".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de vista");
+                            styleMenuItem(verDDL);
                             verDDL.addActionListener(ev -> mostrarDDL("VIEW", nombreNodo));
                             menu.add(verDDL);
 
                             JMenuItem diagramaVista = new JMenuItem("📊 Ver Diagrama Relacional");
+                            styleMenuItem(diagramaVista);
                             diagramaVista.addActionListener(ev
-                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "VIEW")
-                            );
+                                    -> new DiagramaER(Global.conexionActual.baseDatos, nombreNodo, "VIEW"));
                             menu.add(diagramaVista);
                         } else if ("Procedimientos".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de procedimiento");
+                            styleMenuItem(verDDL);
                             verDDL.addActionListener(ev -> mostrarDDL("PROCEDURE", nombreNodo));
                             menu.add(verDDL);
                         } else if ("Funciones".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de función");
+                            styleMenuItem(verDDL);
                             verDDL.addActionListener(ev -> mostrarDDL("FUNCTION", nombreNodo));
                             menu.add(verDDL);
                         } else if ("Triggers".equals(categoria)) {
                             JMenuItem verDDL = new JMenuItem("📜 Ver DDL de trigger");
+                            styleMenuItem(verDDL);
                             verDDL.addActionListener(ev -> mostrarDDL("TRIGGER", nombreNodo));
                             menu.add(verDDL);
                         }
@@ -173,24 +211,36 @@ public class MainFrame extends JFrame {
         });
 
         JPanel panelCentro = new JPanel(new BorderLayout());
+        stylePanel(panelCentro);
 
         txtSQL = new JTextArea(15, 40);
+        styleTextArea(txtSQL);
         JScrollPane scrollSQL = new JScrollPane(txtSQL);
+        scrollSQL.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_GRID),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+        styleScroll(scrollSQL);
 
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        btnEjecutar = new JButton("▶");
-        btnEjecutar.setToolTipText("Ejecutar SQL");
-        btnGuardar = new JButton("💾");
-        btnGuardar.setToolTipText("Guardar script");
-        btnAbrir = new JButton("📂");
-        btnAbrir.setToolTipText("Importar script");
+        toolBar.setBackground(TOOLBAR_BG);
+        toolBar.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 
-        JButton btnConectarPg = new JButton("Conexión con Postgres");
+        btnEjecutar = new JButton("Ejecutar");
+        btnGuardar = new JButton("Guardar");
+        btnAbrir = new JButton("Importar");
+        styleButton(btnEjecutar);
+        styleButton(btnGuardar);
+        styleButton(btnAbrir);
+
+        JButton btnConectarPg = new JButton("Conexión Postgres");
+        styleButton(btnConectarPg);
         btnConectarPg.setToolTipText("Conectar a PostgreSQL");
         btnConectarPg.addActionListener(e -> conectarAPostgres());
 
-        chkReplicarPg = new JCheckBox("Replicar a PG");
+        chkReplicarPg = new JCheckBox("Replicar a PostgreSQL");
+        styleCheck(chkReplicarPg);
 
         toolBar.add(btnEjecutar);
         toolBar.add(btnGuardar);
@@ -198,17 +248,32 @@ public class MainFrame extends JFrame {
         toolBar.addSeparator();
         toolBar.add(btnConectarPg);
         toolBar.add(chkReplicarPg);
+
         JPanel panelSQL = new JPanel(new BorderLayout());
+        stylePanel(panelSQL);
         panelSQL.add(toolBar, BorderLayout.NORTH);
         panelSQL.add(scrollSQL, BorderLayout.CENTER);
+
         panelCentro.add(panelSQL, BorderLayout.NORTH);
+
         tablaResultados = new JTable();
-        panelCentro.add(new JScrollPane(tablaResultados), BorderLayout.CENTER);
+        styleTable(tablaResultados);
+        JScrollPane scrollTable = new JScrollPane(tablaResultados);
+        styleScroll(scrollTable);
+        panelCentro.add(scrollTable, BorderLayout.CENTER);
+
         add(panelCentro, BorderLayout.CENTER);
         txtOutput = new JTextArea(3, 80);
+        styleTextArea(txtOutput);
         txtOutput.setEditable(false);
-        add(new JScrollPane(txtOutput), BorderLayout.SOUTH);
+        JScrollPane scrollOut = new JScrollPane(txtOutput);
+        scrollOut.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_GRID),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
 
+        styleScroll(scrollOut);
+        add(scrollOut, BorderLayout.SOUTH);
         btnEjecutar.addActionListener(e -> ejecutarSQL());
         btnGuardar.addActionListener(e -> guardarSQL());
         btnAbrir.addActionListener(e -> importarSQL());
@@ -234,11 +299,11 @@ public class MainFrame extends JFrame {
     private void ejecutarSQL() {
         String sql = txtSQL.getText().trim();
         if (sql.isEmpty()) {
-            txtOutput.setText("⚠️ No hay script para ejecutar.");
+            txtOutput.setText("No hay script para ejecutar.");
             return;
         }
         if (Global.conexion == null) {
-            txtOutput.setText("⚠️ No hay conexión activa.");
+            txtOutput.setText("No hay conexión activa.");
             return;
         }
 
@@ -260,17 +325,17 @@ public class MainFrame extends JFrame {
                     model.addRow(fila);
                 }
                 tablaResultados.setModel(model);
-                txtOutput.setText("✅ Resultado devuelto con éxito.");
+                txtOutput.setText("Resultado devuelto con éxito.");
             } else {
                 int count = stmt.getUpdateCount();
-                txtOutput.setText("✅ Sentencia ejecutada. Filas afectadas: " + count);
+                txtOutput.setText("Sentencia ejecutada. Filas afectadas: " + count);
                 if (sql.toLowerCase().matches("^(create|drop|alter|rename|truncate).*")) {
                     cargarObjetos();
                 }
                 replicarAPostgres(sql);
             }
         } catch (Exception ex) {
-            txtOutput.setText("❌ Error: " + ex.getMessage());
+            txtOutput.setText("Error: " + ex.getMessage());
         }
     }
 
@@ -281,7 +346,6 @@ public class MainFrame extends JFrame {
 
         try (Statement pg = GlobalPg.conexionPg.createStatement()) {
             String sqlPg = sql;
-
             if (SqlTranslator.isDDL(sql)) {
                 String s = sql.trim().toLowerCase(java.util.Locale.ROOT);
                 if (s.startsWith("create table")) {
@@ -296,11 +360,21 @@ public class MainFrame extends JFrame {
                     sqlPg = SqlTranslator.quoteFix(sql);
                 }
                 pg.execute(sqlPg);
-                txtOutput.append("\n↗️ PG: DDL replicado.");
+                txtOutput.append("\nPostgreSQL: DDL replicado.");
+            } else if (SqlTranslator.isDML(sql)) {
+                String s = sql.trim().toLowerCase(java.util.Locale.ROOT);
+                if (s.startsWith("insert")) {
+                    String table = SqlTranslator.tableNameFromInsert(sql);
+                    List<String> pkCols = (table != null) ? getPkCols(table) : Collections.emptyList();
+                    sqlPg = SqlTranslator.translateInsertToPgUpsert(sql, pkCols);
+                    pg.executeUpdate(sqlPg);
+                } else {
+                    pg.executeUpdate(SqlTranslator.quoteFix(sql));
+                }
+                txtOutput.append("\nPostgreSQL: DML replicado.");
             }
-
         } catch (Exception ex) {
-            txtOutput.append("\n⚠️ Replicación PG falló: " + ex.getMessage());
+            txtOutput.append("\nReplicación PG falló: " + ex.getMessage());
         }
     }
 
@@ -409,29 +483,28 @@ public class MainFrame extends JFrame {
 
     private void mostrarDDL(String tipo, String nombre) {
         if (Global.conexion == null) {
-            txtOutput.setText("⚠️ No hay conexión activa.");
+            txtOutput.setText("No hay conexión activa.");
             return;
         }
         String sql = "SHOW CREATE " + tipo + " `" + nombre + "`";
         try (Statement stmt = Global.conexion.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-
             if (rs.next()) {
                 String ddl = rs.getString(2);
                 txtSQL.setText(ddl);
-                txtOutput.setText("✅ DDL obtenido para " + tipo.toLowerCase() + " " + nombre);
+                txtOutput.setText("DDL obtenido para " + tipo.toLowerCase() + " " + nombre);
             }
         } catch (Exception ex) {
-            txtOutput.setText("❌ Error al obtener DDL: " + ex.getMessage());
+            txtOutput.setText("Error al obtener DDL: " + ex.getMessage());
         }
     }
 
     private void crearNuevaConexion() {
-        JTextField txtNombre = new JTextField();
-        JTextField txtHost = new JTextField("localhost");
-        JTextField txtPuerto = new JTextField("3306");
-        JTextField txtBase = new JTextField();
-        JTextField txtUsuario = new JTextField();
-        JPasswordField txtPass = new JPasswordField();
+        JTextField txtNombre = styledField(new JTextField());
+        JTextField txtHost = styledField(new JTextField("localhost"));
+        JTextField txtPuerto = styledField(new JTextField("3306"));
+        JTextField txtBase = styledField(new JTextField());
+        JTextField txtUsuario = styledField(new JTextField());
+        JPasswordField txtPass = (JPasswordField) styledField(new JPasswordField());
 
         Object[] inputs = {
             "Nombre conexión:", txtNombre,
@@ -460,11 +533,11 @@ public class MainFrame extends JFrame {
     }
 
     private void conectarAPostgres() {
-        JTextField txtHost = new JTextField("localhost");
-        JTextField txtPuerto = new JTextField("5432");
-        JTextField txtBase = new JTextField();
-        JTextField txtUsuario = new JTextField();
-        JPasswordField txtPass = new JPasswordField();
+        JTextField txtHost = styledField(new JTextField("localhost"));
+        JTextField txtPuerto = styledField(new JTextField("5432"));
+        JTextField txtBase = styledField(new JTextField());
+        JTextField txtUsuario = styledField(new JTextField());
+        JPasswordField txtPass = (JPasswordField) styledField(new JPasswordField());
 
         Object[] inputs = {
             "Host:", txtHost,
@@ -490,6 +563,7 @@ public class MainFrame extends JFrame {
 
     private void guardarSQL() {
         JFileChooser fc = new JFileChooser();
+        styleFileChooser(fc);
         if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File f = fc.getSelectedFile();
             if (!f.getName().toLowerCase().endsWith(".sql")) {
@@ -506,6 +580,7 @@ public class MainFrame extends JFrame {
 
     private void importarSQL() {
         JFileChooser fc = new JFileChooser();
+        styleFileChooser(fc);
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try (Scanner sc = new Scanner(fc.getSelectedFile(), "UTF-8")) {
                 StringBuilder sb = new StringBuilder();
@@ -527,5 +602,163 @@ public class MainFrame extends JFrame {
             }
         }
         return -1;
+    }
+
+    private void installLookAndFeelAndTheme() {
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        Font uiFont = pickFont(new String[]{"Segoe UI", "Inter", "Nunito", "SansSerif"}, Font.PLAIN, 13);
+        setUIFont(uiFont);
+        UIManager.put("control", BG_PANEL);
+        UIManager.put("info", BG_PANEL);
+        UIManager.put("nimbusLightBackground", BG_PANEL);
+        UIManager.put("text", FG_TEXT);
+        UIManager.put("menuText", FG_TEXT);
+        UIManager.put("Button.background", BTN_BG);
+        UIManager.put("Button.foreground", FG_TEXT);
+        UIManager.put("ToolTip.background", Color.WHITE);
+        UIManager.put("ToolTip.foreground", FG_TEXT);
+        UIManager.put("Table.gridColor", TABLE_GRID);
+        UIManager.put("Table.background", Color.WHITE);
+        UIManager.put("Table.foreground", FG_TEXT);
+        UIManager.put("Table.selectionBackground", SELECTION_BG);
+        UIManager.put("Table.selectionForeground", Color.WHITE);
+        UIManager.put("TextField.background", FIELD_BG);
+        UIManager.put("TextArea.background", FIELD_BG);
+        UIManager.put("PasswordField.background", FIELD_BG);
+        UIManager.put("ComboBox.background", FIELD_BG);
+    }
+
+    private static void setUIFont(Font f) {
+        java.util.Enumeration<?> keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            Object value = UIManager.get(key);
+            if (value instanceof Font) {
+                UIManager.put(key, f);
+            }
+        }
+    }
+
+    private static Font pickFont(String[] names, int style, int size) {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        Set<String> available = new HashSet<>(Arrays.asList(ge.getAvailableFontFamilyNames()));
+        for (String n : names) {
+            if (available.contains(n)) {
+                return new Font(n, style, size);
+            }
+        }
+        return new Font("Inter", style, size);
+    }
+
+    private static void stylePanel(JComponent p) {
+        p.setBackground(BG_PANEL);
+        p.setForeground(FG_TEXT);
+    }
+
+    private static void styleLabel(JLabel l) {
+        l.setForeground(FG_TEXT);
+    }
+
+    private static void styleButton(AbstractButton b) {
+        b.setBackground(BTN_BG);
+        b.setForeground(FG_TEXT);
+        b.setFocusPainted(false);
+        b.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BTN_BORDER),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                b.setBackground(BTN_BG_HOVER);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                b.setBackground(BTN_BG);
+            }
+        });
+    }
+
+    private static void styleCheck(JCheckBox c) {
+        c.setForeground(FG_TEXT);
+        c.setBackground(BG_PANEL);
+        c.setFocusPainted(false);
+    }
+
+    private static void styleCombo(JComboBox<?> c) {
+        c.setBackground(FIELD_BG);
+        c.setForeground(FG_TEXT);
+        c.setBorder(BorderFactory.createLineBorder(TABLE_GRID));
+    }
+
+    private static void styleTextArea(JTextArea t) {
+        t.setBackground(FIELD_BG);
+        t.setForeground(FG_TEXT);
+        t.setCaretColor(FG_TEXT);
+        t.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_GRID),
+                BorderFactory.createEmptyBorder(6, 6, 6, 6)
+        ));
+    }
+
+    private static void styleTable(JTable t) {
+        t.setBackground(Color.WHITE);
+        t.setForeground(FG_TEXT);
+        t.setGridColor(TABLE_GRID);
+        t.setRowHeight(24);
+        t.setSelectionBackground(SELECTION_BG);
+        t.setSelectionForeground(Color.WHITE);
+        t.getTableHeader().setReorderingAllowed(false);
+        t.getTableHeader().setBackground(BG_PANEL);
+        t.getTableHeader().setForeground(FG_TEXT);
+        t.getTableHeader().setBorder(BorderFactory.createLineBorder(TABLE_GRID));
+    }
+
+    private static void styleScroll(JScrollPane sp) {
+        sp.getViewport().setBackground(BG_PANEL);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+    }
+
+    private static void stylePopup(JPopupMenu m) {
+        m.setBackground(Color.WHITE);
+        m.setBorder(BorderFactory.createLineBorder(TABLE_GRID));
+    }
+
+    private static void styleMenuItem(JMenuItem mi) {
+        mi.setBackground(Color.WHITE);
+        mi.setForeground(FG_TEXT);
+    }
+
+    private static JTextField styledField(JTextField f) {
+        f.setBackground(FIELD_BG);
+        f.setForeground(FG_TEXT);
+        f.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TABLE_GRID),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)
+        ));
+        return f;
+    }
+
+    private static Color hex(String s) {
+        return new Color(
+                Integer.valueOf(s.substring(1, 3), 16),
+                Integer.valueOf(s.substring(3, 5), 16),
+                Integer.valueOf(s.substring(5, 7), 16)
+        );
+    }
+
+    private void styleFileChooser(JFileChooser fc) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
